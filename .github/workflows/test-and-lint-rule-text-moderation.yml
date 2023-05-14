@@ -1,0 +1,64 @@
+name: python lint and test xxxxx
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "docker/xxxxx/**"
+      - ".github/workflows/test-and-lint-xxxxx.yml"
+
+permissions:
+  actions: write
+  id-token: write
+  contents: write
+  pull-requests: write
+
+env:
+  AWS_ROLE_ARN: arn:aws:iam::953576779582:role/xxxxx-xxxxxx-xxxxx-xxxxx-github-actions
+  GITHUB_TOKEN: ${{ secrets.xxxxxxxx }}
+
+jobs:
+  lint_and_test_xxxxx:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    environment: common
+    defaults:
+      run:
+        working-directory: docker/xxxxx
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11","3.10","3.9"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: xxxxx-xxxxx-role-session
+          aws-region: ap-northeast-1
+          
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | POETRY_HOME=$HOME/.poetry python3 - 
+          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+
+      - name: Install Dependencies
+        run: |
+          poetry install
+
+      - name: Python Test
+        run: |
+          poetry run task test
+        
+      - name: Python Lint
+        continue-on-error: false
+        run: poetry run task lint

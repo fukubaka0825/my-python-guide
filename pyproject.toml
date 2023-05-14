@@ -1,0 +1,59 @@
+[tool.poetry]
+name = "xxxxxxxxx"
+version = "0.1.0"
+description = ""
+authors = ["fukubaka0825 <st5818129@gmail.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+taskipy = "^1.10.3"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.0.0"
+black = "^23.1.0"
+pytest = "7.1.2"
+pep8-naming = "^0.13.3"
+pytest-mock = "^3.10.0"
+pytest-cov = "^4.0.0"
+ruff = "^0.0.262"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 132
+
+[tool.mypy]
+show_error_context = true
+show_column_numbers = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_return_any = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[tool.ruff]
+ignore = []
+line-length = 132
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "B"
+]
+
+[tool.taskipy.tasks]
+fmt_lint = { cmd = "task fmt && task lint", help = "format and lint" }
+test = { cmd = "pytest -s -vv --cov=. --cov-branch", help = "runs all unit tests" }
+fmt = { cmd = "task fmt_black && task fmt_isort", help = "format code" }
+lint = { cmd = "task lint_black && task lint_ruff && task lint_mypy", help = "exec lint" }
+fmt_black = "black src tests"
+fmt_isort = "ruff check src tests --select I --fix-only --exit-zero"
+lint_ruff = "ruff check src tests"
+lint_mypy = "mypy src tests"
+lint_black = "black --check src tests"
