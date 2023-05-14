@@ -133,7 +133,7 @@ jobs:
                     },
                   {
                     "type": "mrkdwn",
-                    "text": "*GitHub Actions URL:*\n https://github.com/eure/xxxxx/actions/runs/${{ github.run_id }}"
+                    "text": "*GitHub Actions URL:*\n https://github.com/xxxxxxxxx/xxxxx/actions/runs/${{ github.run_id }}"
                   }
                 ]
               }
@@ -171,7 +171,7 @@ jobs:
                     },
                   {
                     "type": "mrkdwn",
-                    "text": "*GitHub Actions URL:*\n https://github.com/eure/xxxxx/actions/runs/${{ github.run_id }}"
+                    "text": "*GitHub Actions URL:*\n https://github.com/xxxxxxxxx/xxxxx/actions/runs/${{ github.run_id }}"
                   }
                 ]
               }
