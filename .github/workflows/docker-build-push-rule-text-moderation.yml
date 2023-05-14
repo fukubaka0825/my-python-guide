@@ -1,0 +1,249 @@
+name: docker-build-push-xxxxx
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'docker/xxxxx/**'
+      - '.github/workflows/docker-build-push-xxxxx.yml'
+  push:
+    branches: [ xxxxx,master ]
+    paths:
+      - 'docker/xxxxx/**'
+      - '.github/workflows/docker-build-push-xxxxx.yml'
+env:
+  AWS_ROLE_ARN: arn:aws:iam::953576779582:role/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  GITHUB_TOKEN: ${{ secrets.xxxxxxxxxxxxxxx }}
+
+permissions:
+  actions: write
+  id-token: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  docker-build-push:
+    name: docker-build-push
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: xxxxx-pipeline-build-role-session
+          aws-region: ap-northeast-1
+
+      - name: ecr_login
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: get_branch
+        id: get-branch
+        run: |
+          echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+
+      - name: set env
+        id: set-env
+        run: |
+          if [ ${{ github.event_name }} = 'pull_request' ] || [ ${{ github.ref }} = 'refs/heads/xxxxx' ]; then
+            echo "##[set-output name=env;]$(echo xxxxx)"
+          else
+            echo "##[set-output name=env;]$(echo xxxxx)"
+          fi
+
+      # for poetry export requirements.txt
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | POETRY_HOME=$HOME/.poetry python3 - 
+          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+      - name: Poetry export requirements.txt
+        working-directory: docker/xxxxx
+        run: |
+          poetry export --without-hashes -f requirements.txt -o requirements.txt
+
+      - name: get tag
+        id: get-tag
+        run: |
+          echo "##[set-output name=tag;]$(echo `date +%Y%m%d%H%M%S` | sed -e 's/\//_/g')"
+
+      - name: docker build
+        id: docker-build
+        working-directory: docker/xxxxx
+        run: |
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/xxxxx/xxxxx:xxxxx-${{ steps.get-tag.outputs.tag }} --build-arg --no-cache --rm --compress .
+          if [ ${{ github.event_name }} != 'pull_request' ]; then
+            docker build -t ${{ steps.login-ecr.outputs.registry }}/xxxxx/xxxxx:xxxxx-${{ steps.get-tag.outputs.tag }} --build-arg --no-cache --rm --compress .
+          fi
+
+      - name: ecr push
+        id: ecr-push
+        if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/xxxxx')  && steps.docker-build.outcome == 'success'
+        run: |
+          docker push ${{ steps.login-ecr.outputs.registry }}/xxxxx/xxxxx:xxxxx-${{ steps.get-tag.outputs.tag }}
+          if [ ${{ github.event_name }} != 'pull_request' ]; then
+            docker push ${{ steps.login-ecr.outputs.registry }}/xxxxx/xxxxx:xxxxx-${{ steps.get-tag.outputs.tag }}
+          fi
+
+      - name: rm requirements.txt
+        working-directory: docker/xxxxx
+        run: rm requirements.txt
+
+      - name: Docker Build&Push ResultNotification(Success)
+        if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/xxxxx')  && steps.ecr-push.outcome == 'success'
+        uses: tokorom/action-slack-incoming-webhook@master
+        env:
+          INCOMING_WEBHOOK_URL: "${{ secrets.XXXXXXXXXXXX }}"
+        with:
+          blocks: |
+            [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*:tada::tada: [${{ steps.set-env.outputs.env }}] docker/xxxxx Build&Push Success !! :tada::tada:*"
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Docker Build&Push Working Dir:*"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Created Image Tag:*\n ${{ steps.get-tag.outputs.tag }}"
+                  },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Pusher:*\n @${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*env:*\n ${{ steps.set-env.outputs.env }}"
+                    },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*GitHub Actions URL:*\n https://github.com/eure/xxxxx/actions/runs/${{ github.run_id }}"
+                  }
+                ]
+              }
+            ]
+
+      - name: Docker Build&Push ResultNotification(Fxxxxxlure)
+        if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/xxxxx') && (steps.ecr-push.outcome == 'fxxxxxlure' || steps.docker-build.outcome == 'fxxxxxlure')
+        uses: tokorom/action-slack-incoming-webhook@master
+        env:
+          INCOMING_WEBHOOK_URL: "${{ secrets.XXXXXXXXX }}"
+        with:
+          blocks: |
+            [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*:skull::skull: [${{ steps.set-env.outputs.env }}] docker/xxxxx Build&Push Fxxxxxlure !! :skull::skull:*"
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Docker Build&Push Fxxxxxlure Working Dir:*"
+                  },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Pusher:*\n @${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*env:*\n ${{ steps.set-env.outputs.env }}"
+                    },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*GitHub Actions URL:*\n https://github.com/eure/xxxxx/actions/runs/${{ github.run_id }}"
+                  }
+                ]
+              }
+            ]
+
+      - name: init git config
+        id: init-git-config
+        if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/xxxxx') && steps.ecr-push.outcome == 'success'
+        run: |
+          git config --global user.emxxxxxl "xxxxx.developer+xxxxx-machine@xxxxx.jp"
+          git config --global user.name "xxxxx-machine"
+
+      - name: update manifest-xxxxx
+        id: update-manifest-xxxxx
+        if: github.ref == 'refs/heads/xxxxx' && steps.init-git-config.outcome == 'success'
+        env:
+          REGISTORY_NAME: "953576779582.dkr.ecr.ap-northeast-1.amazonaws.com/xxxxx/xxxxx"
+          PATH_TO_MANIFESTS: "k8s/eks/overlays/xxxxx-xxxxx-xxxxx-xxxxx/xxxxx/xxxxx.yaml"
+        run: |
+          git fetch origin master
+          git checkout master
+          git checkout -b xxxxx-xxxxx-auto-pr/${{ steps.get-tag.outputs.tag }}
+          sed -i -e "s|${REGISTORY_NAME}:.*|${REGISTORY_NAME}:xxxxx-${{ steps.get-tag.outputs.tag }}|g" "${PATH_TO_MANIFESTS}"
+          git add .
+          git commit -m "Update ${PATH_TO_MANIFESTS}"
+          git push origin HEAD
+
+      - name: Create PR xxxxx
+        id: create-pr-xxxxx
+        if: github.ref == 'refs/heads/xxxxx' && steps.update-manifest-xxxxx.outcome == 'success'
+        env:
+          PR_TITLE: "Update manifest:xxxxx-xxxxx"
+          PR_BODY: |
+            ## Target
+            - xxxxx-xxxxx
+
+            ## Diff
+            - https://github.com/xxxxx/xxxxx/compare/${{ github.event.before }}...${{ github.sha }}
+        run: |
+          gh pr create -B master -t "$PR_TITLE" -b "$PR_BODY"
+
+      - name: Auto Merge PR
+        id: merge-pr
+        if: github.ref == 'refs/heads/xxxxx' && steps.create-pr-xxxxx.outcome == 'success'
+        run: |
+          gh pr merge xxxxx-xxxxx-auto-pr/${{ steps.get-tag.outputs.tag }} --squash --admin
+
+      - name: update manifest-xxxxx
+        id: update-manifest-xxxxx
+        if: github.ref == 'refs/heads/master' && steps.init-git-config.outcome == 'success'
+        env:
+          REGISTORY_NAME: "953576779582.dkr.ecr.ap-northeast-1.amazonaws.com/xxxxx/xxxxx"
+          PATH_TO_MANIFESTS: "k8s/eks/overlays/xxxxx-xxxxx-xxxxx-xxxxx/xxxxx/xxxxx.yaml"
+        run: |
+          git checkout master
+          git pull
+          git checkout -b xxxxx-xxxxx-auto-pr/${{ steps.get-tag.outputs.tag }}
+          sed -i -e "s|${REGISTORY_NAME}:.*|${REGISTORY_NAME}:xxxxx-${{ steps.get-tag.outputs.tag }}|g" "${PATH_TO_MANIFESTS}"
+          git add .
+          git commit -m "Update ${PATH_TO_MANIFESTS}"
+          git push origin HEAD
+
+      - name: Create PR xxxxx
+        id: create-pr-xxxxx
+        if: github.ref == 'refs/heads/master' && steps.update-manifest-xxxxx.outcome == 'success'
+        env:
+          PR_TITLE: "Update manifest:xxxxx-xxxxx"
+          PR_BODY: |
+            ## Target
+            - xxxxx-xxxxx
+
+            ## Diff
+            - https://github.com/xxxxx/xxxxx/compare/${{ github.event.before }}...${{ github.sha }}
+        run: |
+          gh pr create -B master -t "$PR_TITLE" -b "$PR_BODY"
