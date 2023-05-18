@@ -12,7 +12,7 @@ on:
       - 'docker/xxxxx/**'
       - '.github/workflows/docker-build-push-xxxxx.yml'
 env:
-  AWS_ROLE_ARN: arn:aws:iam::953576779582:role/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  AWS_ROLE_ARN: arn:aws:iam::xxxxxxxxxxxx:role/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   GITHUB_TOKEN: ${{ secrets.xxxxxxxxxxxxxxx }}
 
 permissions:
@@ -181,14 +181,14 @@ jobs:
         id: init-git-config
         if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/xxxxx') && steps.ecr-push.outcome == 'success'
         run: |
-          git config --global user.emxxxxxl "xxxxx.developer+xxxxx-machine@xxxxx.jp"
+          git config --global user.email "xxxxx.developer+xxxxx-xxxxxxxxxx@xxxxx.jp"
           git config --global user.name "xxxxx-machine"
 
       - name: update manifest-xxxxx
         id: update-manifest-xxxxx
         if: github.ref == 'refs/heads/xxxxx' && steps.init-git-config.outcome == 'success'
         env:
-          REGISTORY_NAME: "953576779582.dkr.ecr.ap-northeast-1.amazonaws.com/xxxxx/xxxxx"
+          REGISTORY_NAME: "xxxxxxxxxxxxxx.dkr.ecr.ap-northeast-1.amazonaws.com/xxxxx/xxxxx"
           PATH_TO_MANIFESTS: "k8s/eks/overlays/xxxxx-xxxxx-xxxxx-xxxxx/xxxxx/xxxxx.yaml"
         run: |
           git fetch origin master
