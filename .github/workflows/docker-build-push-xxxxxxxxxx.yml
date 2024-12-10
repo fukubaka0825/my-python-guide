@@ -56,19 +56,36 @@ jobs:
             echo "##[set-output name=env;]$(echo xxxxx)"
           fi
 
-      # for poetry export requirements.txt
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-      - name: Install Poetry
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: uv export
+        id: export
+        shell: bash
+        working-directory: ${{ inputs.WORKING_DIR }}
         run: |
-          curl -sSL https://install.python-poetry.org | POETRY_HOME=$HOME/.poetry python3 - 
-          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
-      - name: Poetry export requirements.txt
-        working-directory: docker/xxxxx
+          uv export --no-dev --no-hashes --format requirements-txt >> generated-requirements.txt
+
+      - name: Compare requirements.txt
+        id: diff
+        shell: bash
+        working-directory: ${{ inputs.WORKING_DIR }}
         run: |
-          poetry export --without-hashes -f requirements.txt -o requirements.txt
+          if ! diff -q requirements.txt generated-requirements.txt; then
+            echo "Generated requirements.txt does not match the existing one."
+            echo "Please update the requirements.txt file by running 'uv export --no-dev --no-hashes --format requirements-txt >> requirements.txt"
+            echo "[Diff]"
+            diff -u  requirements.txt generated-requirements.txt
+            exit 1
+          fi
+          rm generated-requirements.txt
 
       - name: get tag
         id: get-tag
